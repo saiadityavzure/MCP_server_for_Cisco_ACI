@@ -1,0 +1,9 @@
+services:
+  aci-mcp:
+    build: .
+    container_name: aci-mcp
+    env_file:
+      - ./.env
+    ports:
+      - "${MCP_PORT:-9050}:${MCP_PORT:-9050}"
+    restart: unless-stopped

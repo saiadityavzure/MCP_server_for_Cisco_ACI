@@ -3,11 +3,10 @@ import asyncio
 import os
 import time
 import json
-from   dotenv import load_dotenv
+from   dotenv import load_dotenv, find_dotenv
 import logging
 
-# load .env file for credentials and IP address
-load_dotenv()
+load_dotenv(find_dotenv())
 
 # set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")

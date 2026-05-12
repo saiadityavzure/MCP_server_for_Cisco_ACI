@@ -10,7 +10,7 @@ from   auth_manager import apic_auth_manager
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("APICmcp")
 
-mcp = FastMCP("APICmcp", settings={"initialization_timeout": 10.0}) 
+mcp = FastMCP("APICmcp", host="0.0.0.0", port=int(os.getenv("MCP_PORT", "8000")))
 
 @mcp.tool()
 async def fetch_apic_class(class_name: str) -> str:
@@ -178,5 +178,5 @@ async def make_aci_backup(scp_server_ip: str, scp_username: str, scp_password: s
 
 
 if __name__ == "__main__":
-    logger.info("Starting MCP server APICmcp on STDIO...")
-    mcp.run()
+    logger.info(f"Starting MCP server APICmcp on SSE (http://0.0.0.0:{os.getenv('MCP_PORT', '8000')}/sse)...")
+    mcp.run(transport="sse")
