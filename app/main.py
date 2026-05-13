@@ -13,7 +13,24 @@ from fastmcp.exceptions import ToolError
 load_dotenv(find_dotenv())
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+LOG_DIR = os.path.join(os.path.dirname(__file__), "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+
+_fmt = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+_console = logging.StreamHandler()
+_console.setLevel(logging.INFO)
+_console.setFormatter(_fmt)
+
+_debug_file = logging.FileHandler(os.path.join(LOG_DIR, "aci_mcp_debug.log"))
+_debug_file.setLevel(logging.DEBUG)
+_debug_file.setFormatter(_fmt)
+
+_error_file = logging.FileHandler(os.path.join(LOG_DIR, "aci_mcp_error.log"))
+_error_file.setLevel(logging.ERROR)
+_error_file.setFormatter(_fmt)
+
+logging.basicConfig(level=logging.DEBUG, handlers=[_console, _debug_file, _error_file])
 logger = logging.getLogger("ACIMCPServer")
 
 APIC_URL = os.getenv("APIC_URL")
