@@ -29,13 +29,28 @@ class ACIController:
         return self._request("GET", endpoint, params=params)
 
     def post(self, endpoint: str, payload: Dict[str, Any]) -> dict:
-        return self._request("POST", endpoint, json=payload)
+        return self._acknowledge_write(self._request("POST", endpoint, json=payload))
 
     def put(self, endpoint: str, payload: Dict[str, Any]) -> dict:
-        return self._request("PUT", endpoint, json=payload)
+        return self._acknowledge_write(self._request("PUT", endpoint, json=payload))
 
     def delete(self, endpoint: str) -> dict:
-        return self._request("DELETE", endpoint)
+        return self._acknowledge_write(self._request("DELETE", endpoint))
+
+    # ── Helpers ───────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _acknowledge_write(result: dict) -> dict:
+        """APIC returns {"totalCount":"0","imdata":[]} on successful writes.
+        Convert that to an explicit success acknowledgement so the caller
+        never misinterprets an empty imdata array as a failure."""
+        if (
+            isinstance(result, dict)
+            and result.get("imdata") == []
+            and str(result.get("totalCount", "")) == "0"
+        ):
+            return {"status": "success", "message": "Operation completed successfully on APIC."}
+        return result
 
     # ── Auth ───────────────────────────────────────────────────────────────────
 
