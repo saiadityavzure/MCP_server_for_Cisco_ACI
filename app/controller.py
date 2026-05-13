@@ -60,38 +60,51 @@ class ACIController:
         try:
             response = requests.post(login_url, json=payload, verify=False, timeout=15)
             response.raise_for_status()
-            logger.info("Authenticated with APIC.")
+            logger.debug("APIC authentication successful.")
             return response.cookies
         except requests.exceptions.RequestException as e:
-            logger.error(f"APIC auth failed: {e}")
+            logger.error(f"[AUTH ERROR] APIC authentication failed: {e}")
             raise
 
     # ── Core request ──────────────────────────────────────────────────────────
 
     def _request(self, method: str, endpoint: str, **kwargs) -> dict:
         url = f"{self.base_url}{endpoint}"
+        params = kwargs.get("params")
+        payload = kwargs.get("json")
         response = None
+
+        log_parts = [f"[INVOKE] {method} {endpoint}"]
+        if params:
+            log_parts.append(f"params: {params}")
+        if payload:
+            log_parts.append(f"payload: {payload}")
+        logger.info(" | ".join(log_parts))
+
         try:
             cookies = self._get_token()
-            logger.debug(f"{method} {url} | payload: {kwargs.get('json')}")
             response = requests.request(
                 method, url, headers=_HEADERS, cookies=cookies,
                 verify=False, timeout=15, **kwargs
             )
-            logger.debug(
-                f"{method} {url} | status: {response.status_code} "
-                f"| body: {response.text[:500]}"
-            )
             response.raise_for_status()
             data = response.json()
             self._raise_on_apic_error(method, url, data)
+            result = self._acknowledge_write(data) if method != "GET" else data
+            count = data.get("totalCount", "?") if method == "GET" else None
+            if count is not None:
+                logger.info(f"[SUCCESS] {method} {endpoint} | records: {count}")
+            else:
+                logger.info(f"[SUCCESS] {method} {endpoint} | {result.get('message', 'ok')}")
             return data
         except requests.exceptions.HTTPError as e:
             body = response.text[:1000] if response is not None else "no response"
-            logger.error(f"HTTP {e.response.status_code} on {method} {url} | body: {body}")
+            logger.error(
+                f"[ERROR] {method} {endpoint} | HTTP {e.response.status_code} | body: {body}"
+            )
             raise ToolError(f"{method} {url} failed HTTP {e.response.status_code}: {body}")
         except requests.exceptions.RequestException as e:
-            logger.error(f"Request error on {method} {url}: {e}")
+            logger.error(f"[ERROR] {method} {endpoint} | request failed: {e}")
             raise ToolError(f"{method} request failed: {e}")
 
     @staticmethod
