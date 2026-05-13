@@ -1,7 +1,7 @@
 import json
 import logging
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
@@ -111,8 +111,19 @@ def _register_ungrouped(
             return tool
 
         def _delete(ep: str):
-            def tool() -> dict:
-                return controller.delete(ep)
+            def tool(
+                dn: Optional[str] = Field(
+                    default=None,
+                    description=(
+                        "Distinguished name of the specific object to delete, "
+                        "e.g. 'uni/tn-MyTenant/ap-MyAP/epg-MyEPG'. "
+                        "When provided the request targets /api/node/mo/{dn}.json. "
+                        "Omit only if deleting at the class-level endpoint."
+                    ),
+                )
+            ) -> dict:
+                target = f"/api/node/mo/{dn}.json" if dn else ep
+                return controller.delete(target)
             return tool
 
         for suffix, factory in [("get", _read), ("post", _post), ("delete", _delete)]:
