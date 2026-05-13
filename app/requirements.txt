@@ -1,6 +1,5 @@
-mcp
-httpx
+fastmcp
+requests
 python-dotenv
 pydantic
 uvicorn
-starlette
