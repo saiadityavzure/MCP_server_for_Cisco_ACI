@@ -141,6 +141,42 @@ def register_crud_tools(mcp: FastMCP, controller: ACIController) -> None:
         return result
 
     @mcp.tool()
+    def create_subnet(
+        tenant_name: str,
+        bridge_domain_name: str,
+        subnet: str,
+        scope: str = "private",
+        description: str = "",
+    ) -> dict:
+        """
+        Create a subnet on a Bridge Domain in ACI.
+
+        Args:
+            tenant_name: Name of the parent tenant (e.g. 'tenant2')
+            bridge_domain_name: Name of the Bridge Domain (e.g. 'ai')
+            subnet: Subnet in CIDR notation including the gateway IP (e.g. '10.9.1.1/24')
+            scope: Subnet scope — 'private', 'public', or 'shared' (default: 'private')
+            description: Optional description
+        """
+        payload = {
+            "fvSubnet": {
+                "attributes": {
+                    "ip": subnet,
+                    "scope": scope,
+                    "descr": description,
+                    "rn": f"subnet-[{subnet}]",
+                    "status": "created,modified",
+                }
+            }
+        }
+        logger.debug(f"Creating subnet '{subnet}' in BD '{bridge_domain_name}' tenant '{tenant_name}'")
+        result = controller.post(
+            f"/api/node/mo/uni/tn-{tenant_name}/BD-{bridge_domain_name}.json", payload
+        )
+        logger.info(f"Subnet '{subnet}' created in BD '{bridge_domain_name}' tenant '{tenant_name}'")
+        return result
+
+    @mcp.tool()
     def create_epg(
         tenant_name: str,
         ap_name: str,
@@ -151,9 +187,12 @@ def register_crud_tools(mcp: FastMCP, controller: ACIController) -> None:
         """
         Create an Endpoint Group (EPG) inside an Application Profile.
 
+        PREREQUISITE: The Application Profile (ap_name) must already exist inside the tenant.
+        Call create_application_profile first if it does not exist yet.
+
         Args:
             tenant_name: Name of the parent tenant
-            ap_name: Application Profile name
+            ap_name: Application Profile name (must already exist)
             epg_name: EPG name
             bd_name: Optional Bridge Domain to bind to
             description: Optional description
